@@ -15,8 +15,10 @@ import java.util.List;
  * Para producción o integración con el API Gateway, agregar los orígenes
  * correspondientes en la lista {@code allowedOrigins}.
  *
- * <p><strong>Para añadir el API Gateway:</strong>
- * Agregar su URL (ej. "http://localhost:8080") a la lista de orígenes permitidos.
+ * <p>
+ * <strong>Para añadir el API Gateway:</strong>
+ * Agregar su URL (ej. "http://localhost:8080") a la lista de orígenes
+ * permitidos.
  */
 @Configuration
 public class CorsConfig {
@@ -27,8 +29,8 @@ public class CorsConfig {
 
         // Orígenes permitidos — agregar aquí la URL del API Gateway cuando se integre
         config.setAllowedOrigins(List.of(
-                "http://localhost:8080",  // Futuro API Gateway
-                "http://localhost:8082"   // Swagger UI local
+                "http://localhost:8080", // Futuro API Gateway
+                "http://localhost:3001" // Swagger UI local
         ));
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));

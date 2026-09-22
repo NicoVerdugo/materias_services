@@ -10,5 +10,5 @@ RUN apt-get update && apt-get install -y maven && \
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
-EXPOSE 8082
+EXPOSE 3001
 ENTRYPOINT ["java", "-jar", "app.jar"]

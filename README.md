@@ -141,7 +141,7 @@ mvn clean test
 mvn spring-boot:run
 ```
 
-El servicio arrancará en `http://localhost:8082`.
+El servicio arrancará en `http://localhost:3001`.
 
 ---
 
@@ -151,9 +151,9 @@ Una vez iniciado el servicio:
 
 | Recurso | URL |
 |---------|-----|
-| **Swagger UI** | http://localhost:8082/swagger-ui/index.html |
-| **OpenAPI JSON** | http://localhost:8082/v3/api-docs |
-| **Health Check** | http://localhost:8082/actuator/health |
+| **Swagger UI** | http://localhost:3001/swagger-ui/index.html |
+| **OpenAPI JSON** | http://localhost:3001/v3/api-docs |
+| **Health Check** | http://localhost:3001/actuator/health |
 
 ---
 
