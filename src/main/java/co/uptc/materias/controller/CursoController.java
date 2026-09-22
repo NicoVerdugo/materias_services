@@ -23,12 +23,12 @@ import org.springframework.web.bind.annotation.*;
 /**
  * Controlador REST para la gestión de Cursos (oferta académica).
  * <p>
- * El endpoint GET /api/cursos/{id} es clave para la futura integración
+ * El endpoint GET /api/materias/cursos/{id} es clave para la futura integración
  * con el API Gateway. La respuesta incluye {@code materiaNombre} para
  * facilitar la composición del detalle de un estudiante.
  */
 @RestController
-@RequestMapping("/api/cursos")
+@RequestMapping("/api/materias/cursos")
 @Tag(name = "Cursos", description = "Gestión de la oferta académica (cursos por periodo)")
 public class CursoController {
 

@@ -8,7 +8,7 @@ import jakarta.persistence.*;
  * Un curso asocia una Materia con un Docente, e incluye información de
  * horario, aula, capacidad, modalidad y estado.
  * Esta entidad es clave para la futura integración con el API Gateway,
- * ya que el endpoint GET /api/cursos/{id} será consultado durante la
+ * ya que el endpoint GET /api/materias/cursos/{id} será consultado durante la
  * composición del detalle de un estudiante.
  */
 @Entity

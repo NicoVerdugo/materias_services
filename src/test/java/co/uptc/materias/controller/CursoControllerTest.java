@@ -35,7 +35,7 @@ class CursoControllerTest {
     private CursoService cursoService;
 
     @Nested
-    @DisplayName("POST /api/cursos")
+    @DisplayName("POST /api/materias/cursos")
     class CreateCurso {
 
         @Test
@@ -45,7 +45,7 @@ class CursoControllerTest {
                     1L, "Lunes 14:00-16:00", "2026-2", 30, "Lab 204", "PRESENCIAL", "ACTIVO");
             when(cursoService.create(any())).thenReturn(response);
 
-            mockMvc.perform(post("/api/cursos")
+            mockMvc.perform(post("/api/materias/cursos")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {
@@ -67,7 +67,7 @@ class CursoControllerTest {
         @Test
         @DisplayName("debe retornar 400 con cupo negativo")
         void shouldReturn400WhenCupoNegative() throws Exception {
-            mockMvc.perform(post("/api/cursos")
+            mockMvc.perform(post("/api/materias/cursos")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {
@@ -87,7 +87,7 @@ class CursoControllerTest {
         @Test
         @DisplayName("debe retornar 400 con modalidad inválida")
         void shouldReturn400WhenInvalidModalidad() throws Exception {
-            mockMvc.perform(post("/api/cursos")
+            mockMvc.perform(post("/api/materias/cursos")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {
@@ -110,7 +110,7 @@ class CursoControllerTest {
             when(cursoService.create(any()))
                     .thenThrow(new ResourceNotFoundException("Materia no encontrada con id: 99"));
 
-            mockMvc.perform(post("/api/cursos")
+            mockMvc.perform(post("/api/materias/cursos")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {
@@ -130,7 +130,7 @@ class CursoControllerTest {
     }
 
     @Nested
-    @DisplayName("GET /api/cursos/{id}")
+    @DisplayName("GET /api/materias/cursos/{id}")
     class FindById {
 
         @Test
@@ -141,7 +141,7 @@ class CursoControllerTest {
                     "Laboratorio 204", "PRESENCIAL", "ACTIVO");
             when(cursoService.findById(1L)).thenReturn(response);
 
-            mockMvc.perform(get("/api/cursos/1"))
+            mockMvc.perform(get("/api/materias/cursos/1"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.materiaNombre").value("Sistemas Distribuidos"))
                     .andExpect(jsonPath("$.materiaId").value(3))
@@ -152,7 +152,7 @@ class CursoControllerTest {
     }
 
     @Nested
-    @DisplayName("GET /api/cursos")
+    @DisplayName("GET /api/materias/cursos")
     class ListCursos {
 
         @Test
@@ -164,7 +164,7 @@ class CursoControllerTest {
             when(cursoService.findAll(anyInt(), anyInt(), anyString(), anyString(),
                     any(), any(), any(), any(), any())).thenReturn(page);
 
-            mockMvc.perform(get("/api/cursos")
+            mockMvc.perform(get("/api/materias/cursos")
                             .param("periodo", "2026-2")
                             .param("estado", "ACTIVO")
                             .param("sortBy", "periodo")
@@ -175,13 +175,13 @@ class CursoControllerTest {
     }
 
     @Nested
-    @DisplayName("DELETE /api/cursos/{id}")
+    @DisplayName("DELETE /api/materias/cursos/{id}")
     class DeleteCurso {
 
         @Test
         @DisplayName("debe retornar 204 al eliminar exitosamente")
         void shouldReturn204() throws Exception {
-            mockMvc.perform(delete("/api/cursos/1"))
+            mockMvc.perform(delete("/api/materias/cursos/1"))
                     .andExpect(status().isNoContent());
         }
     }

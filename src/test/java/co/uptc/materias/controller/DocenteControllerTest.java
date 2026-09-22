@@ -38,7 +38,7 @@ class DocenteControllerTest {
     private DocenteService docenteService;
 
     @Nested
-    @DisplayName("POST /api/docentes")
+    @DisplayName("POST /api/materias/docentes")
     class CreateDocente {
 
         @Test
@@ -48,7 +48,7 @@ class DocenteControllerTest {
                     "carlos@uptc.edu.co", "Distribuidos", true);
             when(docenteService.create(any())).thenReturn(response);
 
-            mockMvc.perform(post("/api/docentes")
+            mockMvc.perform(post("/api/materias/docentes")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {
@@ -66,7 +66,7 @@ class DocenteControllerTest {
         @Test
         @DisplayName("debe retornar 400 con correo inválido")
         void shouldReturn400WhenInvalidEmail() throws Exception {
-            mockMvc.perform(post("/api/docentes")
+            mockMvc.perform(post("/api/materias/docentes")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {
@@ -86,7 +86,7 @@ class DocenteControllerTest {
             when(docenteService.create(any()))
                     .thenThrow(new DuplicateResourceException("Correo ya existe"));
 
-            mockMvc.perform(post("/api/docentes")
+            mockMvc.perform(post("/api/materias/docentes")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {
@@ -104,7 +104,7 @@ class DocenteControllerTest {
         @Test
         @DisplayName("debe retornar 400 con campos vacíos")
         void shouldReturn400WhenFieldsEmpty() throws Exception {
-            mockMvc.perform(post("/api/docentes")
+            mockMvc.perform(post("/api/materias/docentes")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {
@@ -120,7 +120,7 @@ class DocenteControllerTest {
     }
 
     @Nested
-    @DisplayName("GET /api/docentes/{id}")
+    @DisplayName("GET /api/materias/docentes/{id}")
     class FindById {
 
         @Test
@@ -130,7 +130,7 @@ class DocenteControllerTest {
                     "carlos@uptc.edu.co", "Distribuidos", true);
             when(docenteService.findById(1L)).thenReturn(response);
 
-            mockMvc.perform(get("/api/docentes/1"))
+            mockMvc.perform(get("/api/materias/docentes/1"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.correoInstitucional").value("carlos@uptc.edu.co"));
         }
@@ -141,13 +141,13 @@ class DocenteControllerTest {
             when(docenteService.findById(99L))
                     .thenThrow(new ResourceNotFoundException("Docente no encontrado"));
 
-            mockMvc.perform(get("/api/docentes/99"))
+            mockMvc.perform(get("/api/materias/docentes/99"))
                     .andExpect(status().isNotFound());
         }
     }
 
     @Nested
-    @DisplayName("GET /api/docentes")
+    @DisplayName("GET /api/materias/docentes")
     class ListDocentes {
 
         @Test
@@ -159,7 +159,7 @@ class DocenteControllerTest {
             when(docenteService.findAll(anyInt(), anyInt(), anyString(), anyString(),
                     any(), any(), any(), any())).thenReturn(page);
 
-            mockMvc.perform(get("/api/docentes")
+            mockMvc.perform(get("/api/materias/docentes")
                             .param("activo", "true")
                             .param("especialidad", "Distribuidos"))
                     .andExpect(status().isOk())
@@ -168,7 +168,7 @@ class DocenteControllerTest {
     }
 
     @Nested
-    @DisplayName("DELETE /api/docentes/{id}")
+    @DisplayName("DELETE /api/materias/docentes/{id}")
     class DeleteDocente {
 
         @Test
@@ -177,7 +177,7 @@ class DocenteControllerTest {
             doThrow(new ResourceInUseException("Docente tiene cursos"))
                     .when(docenteService).delete(1L);
 
-            mockMvc.perform(delete("/api/docentes/1"))
+            mockMvc.perform(delete("/api/materias/docentes/1"))
                     .andExpect(status().isConflict());
         }
     }

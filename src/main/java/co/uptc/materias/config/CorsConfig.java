@@ -30,7 +30,7 @@ public class CorsConfig {
         // Orígenes permitidos — agregar aquí la URL del API Gateway cuando se integre
         config.setAllowedOrigins(List.of(
                 "http://localhost:8080", // Futuro API Gateway
-                "http://localhost:3001" // Swagger UI local
+                "http://localhost:3002" // Swagger UI local
         ));
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));

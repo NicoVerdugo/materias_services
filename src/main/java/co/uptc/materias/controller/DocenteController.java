@@ -21,11 +21,11 @@ import org.springframework.web.bind.annotation.*;
 /**
  * Controlador REST para la gestión de Docentes.
  * <p>
- * El endpoint GET /api/docentes/{id} es clave para la futura integración
+ * El endpoint GET /api/materias/docentes/{id} es clave para la futura integración
  * con el API Gateway durante la composición del detalle de un estudiante.
  */
 @RestController
-@RequestMapping("/api/docentes")
+@RequestMapping("/api/materias/docentes")
 @Tag(name = "Docentes", description = "Gestión de docentes del módulo académico")
 public class DocenteController {
 

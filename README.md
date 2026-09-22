@@ -141,7 +141,7 @@ mvn clean test
 mvn spring-boot:run
 ```
 
-El servicio arrancará en `http://localhost:3001`.
+El servicio arrancará en `http://localhost:3002`.
 
 ---
 
@@ -151,9 +151,9 @@ Una vez iniciado el servicio:
 
 | Recurso | URL |
 |---------|-----|
-| **Swagger UI** | http://localhost:3001/swagger-ui/index.html |
-| **OpenAPI JSON** | http://localhost:3001/v3/api-docs |
-| **Health Check** | http://localhost:3001/actuator/health |
+| **Swagger UI** | http://localhost:3002/swagger-ui/index.html |
+| **OpenAPI JSON** | http://localhost:3002/v3/api-docs |
+| **Health Check** | http://localhost:3002/actuator/health |
 
 ---
 
@@ -173,21 +173,21 @@ Una vez iniciado el servicio:
 
 | Método | Ruta | Descripción |
 |--------|------|-------------|
-| `POST` | `/api/docentes` | Crear docente (correo único) |
-| `GET` | `/api/docentes` | Listar con paginación, filtros y ordenamiento |
-| `GET` | `/api/docentes/{id}` | Obtener por ID |
-| `PUT` | `/api/docentes/{id}` | Actualizar |
-| `DELETE` | `/api/docentes/{id}` | Eliminar (409 si tiene cursos) |
+| `POST` | `/api/materias/docentes` | Crear docente (correo único) |
+| `GET` | `/api/materias/docentes` | Listar con paginación, filtros y ordenamiento |
+| `GET` | `/api/materias/docentes/{id}` | Obtener por ID |
+| `PUT` | `/api/materias/docentes/{id}` | Actualizar |
+| `DELETE` | `/api/materias/docentes/{id}` | Eliminar (409 si tiene cursos) |
 
 ### Cursos
 
 | Método | Ruta | Descripción |
 |--------|------|-------------|
-| `POST` | `/api/cursos` | Crear curso (valida materia y docente) |
-| `GET` | `/api/cursos` | Listar con paginación, filtros y ordenamiento |
-| `GET` | `/api/cursos/{id}` | Obtener por ID (incluye `materiaNombre`) |
-| `PUT` | `/api/cursos/{id}` | Actualizar |
-| `DELETE` | `/api/cursos/{id}` | Eliminar |
+| `POST` | `/api/materias/cursos` | Crear curso (valida materia y docente) |
+| `GET` | `/api/materias/cursos` | Listar con paginación, filtros y ordenamiento |
+| `GET` | `/api/materias/cursos/{id}` | Obtener por ID (incluye `materiaNombre`) |
+| `PUT` | `/api/materias/cursos/{id}` | Actualizar |
+| `DELETE` | `/api/materias/cursos/{id}` | Eliminar |
 
 ---
 
@@ -225,12 +225,12 @@ GET /api/materias?nombre=sistemas&programa=ingenieria&creditos=4
 
 ### Docentes
 ```
-GET /api/docentes?nombres=carlos&especialidad=distribuidos&activo=true
+GET /api/materias/docentes?nombres=carlos&especialidad=distribuidos&activo=true
 ```
 
 ### Cursos
 ```
-GET /api/cursos?periodo=2026-2&estado=ACTIVO&modalidad=PRESENCIAL&materiaId=1
+GET /api/materias/cursos?periodo=2026-2&estado=ACTIVO&modalidad=PRESENCIAL&materiaId=1
 ```
 
 ---
@@ -282,9 +282,9 @@ Formato de error:
 
 Este microservicio está preparado para ser consumido por un API Gateway:
 
-- **Prefijo de rutas:** `/api/materias`, `/api/docentes`, `/api/cursos`
-- **`GET /api/cursos/{id}`** devuelve `materiaNombre` para que el Gateway no necesite una segunda consulta
-- **`GET /api/docentes/{id}`** listo para la composición del detalle de estudiante
+- **Prefijo de rutas:** todo bajo `/api/materias/**` (`/api/materias`, `/api/materias/docentes`, `/api/materias/cursos`)
+- **`GET /api/materias/cursos/{id}`** devuelve `materiaNombre` para que el Gateway no necesite una segunda consulta
+- **`GET /api/materias/docentes/{id}`** listo para la composición del detalle de estudiante
 - **CORS** configurado con orígenes explícitos (editar en `CorsConfig.java`)
 - **Health Check** disponible en `/actuator/health`
 - **Independencia total:** funciona sin depender de otros microservicios

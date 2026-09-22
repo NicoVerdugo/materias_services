@@ -9,8 +9,8 @@ import org.springframework.context.annotation.Configuration;
 /**
  * Configuración de OpenAPI / Swagger UI.
  * <p>
- * Swagger UI disponible en: http://localhost:3001/swagger-ui/index.html
- * OpenAPI JSON en: http://localhost:3001/v3/api-docs
+ * Swagger UI disponible en: http://localhost:3002/swagger-ui/index.html
+ * OpenAPI JSON en: http://localhost:3002/v3/api-docs
  */
 @Configuration
 public class OpenApiConfig {
