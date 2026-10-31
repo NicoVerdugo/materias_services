@@ -1,0 +1,65 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.02kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/eclipse-temurin:21-jre
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/maven:3.9-eclipse-temurin-21
+#3 DONE 0.5s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 111B done
+#4 DONE 0.0s
+
+#5 [build 1/6] FROM docker.io/library/maven:3.9-eclipse-temurin-21@sha256:99e61abcff91a9b1333463bd8451fb18495d6eba9250ac66a338b518f8278320
+#5 resolve docker.io/library/maven:3.9-eclipse-temurin-21@sha256:99e61abcff91a9b1333463bd8451fb18495d6eba9250ac66a338b518f8278320 0.0s done
+#5 DONE 0.0s
+
+#6 [stage-1 1/4] FROM docker.io/library/eclipse-temurin:21-jre@sha256:f37956012e0cb88400e5b3689aeae2d2d735364c1922ae2225536163b5a99f56
+#6 resolve docker.io/library/eclipse-temurin:21-jre@sha256:f37956012e0cb88400e5b3689aeae2d2d735364c1922ae2225536163b5a99f56 0.0s done
+#6 DONE 0.0s
+
+#7 [internal] load build context
+#7 transferring context: 5.68kB 0.0s done
+#7 DONE 0.0s
+
+#8 [build 2/6] WORKDIR /app
+#8 CACHED
+
+#9 [build 3/6] COPY pom.xml .
+#9 CACHED
+
+#10 [build 4/6] RUN mvn -q dependency:go-offline
+#10 CACHED
+
+#11 [build 5/6] COPY src ./src
+#11 DONE 0.0s
+
+#12 [build 6/6] RUN mvn -q package -DskipTests
+#12 DONE 8.2s
+
+#13 [stage-1 2/4] RUN apt-get update && apt-get install -y --no-install-recommends curl  && rm -rf /var/lib/apt/lists/*  && useradd -r -u 1001 app
+#13 CACHED
+
+#14 [stage-1 3/4] WORKDIR /app
+#14 CACHED
+
+#15 [stage-1 4/4] COPY --from=build /app/target/*.jar /app/app.jar
+#15 DONE 0.1s
+
+#16 exporting to image
+#16 exporting layers
+#16 exporting layers 1.6s done
+#16 exporting manifest sha256:89d395b818b9e606338a8596ee95ec698aeac728f388e7b69e9d1cec950edb94 done
+#16 exporting config sha256:a9f7e6070b3588f0691dd007966768100258faf61d7090fbbec686221cc0c117 0.0s done
+#16 exporting attestation manifest sha256:d6c2cf7aed9b6ad07e7945035bbf395125af328a91749733e51caf32951cf463 0.0s done
+#16 exporting manifest list sha256:6e80bda0b51a286bb58ca9f3ac056514f69a59f5d442a81eacc674267272a1a5 0.0s done
+#16 naming to docker.io/library/materias:1.1 done
+#16 unpacking to docker.io/library/materias:1.1
+#16 unpacking to docker.io/library/materias:1.1 0.3s done
+#16 DONE 2.0s
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/d4uxwsrugi3f9jn32f8mpim3q

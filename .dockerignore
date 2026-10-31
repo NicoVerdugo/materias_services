@@ -1,0 +1,30 @@
+# Compilación local: el .jar se genera dentro de la imagen
+target/
+
+# Variables de entorno y secretos (se inyectan al ejecutar el contenedor)
+.env
+*.env
+!.env.example
+
+# Configuraciones locales de IDE
+.idea/
+.vscode/
+*.iml
+.settings/
+.project
+.classpath
+
+# Maven Wrapper (la imagen usa Maven instalado en la etapa builder)
+.mvn/
+mvnw
+mvnw.cmd
+
+# Logs y archivos que no necesita la imagen
+*.log
+b5-build1.txt
+.git/
+.gitignore
+*.md
+docker-compose.yml
+Dockerfile
+.dockerignore

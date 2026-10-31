@@ -7,6 +7,7 @@ import co.uptc.materias.dto.response.PageResponse;
 import co.uptc.materias.entity.Materia;
 import co.uptc.materias.exception.ResourceInUseException;
 import co.uptc.materias.exception.ResourceNotFoundException;
+import co.uptc.materias.repository.ContenidoTematicoRepository;
 import co.uptc.materias.repository.CursoRepository;
 import co.uptc.materias.repository.MateriaRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +40,9 @@ class MateriaServiceTest {
 
     @Mock
     private CursoRepository cursoRepository;
+
+    @Mock
+    private ContenidoTematicoRepository contenidoTematicoRepository;
 
     @InjectMocks
     private MateriaService materiaService;
@@ -226,6 +230,19 @@ class MateriaServiceTest {
             assertThatThrownBy(() -> materiaService.delete(1L))
                     .isInstanceOf(ResourceInUseException.class)
                     .hasMessageContaining("cursos asociados");
+        }
+
+        @Test
+        @DisplayName("debe lanzar ResourceInUseException al eliminar materia con contenido temático")
+        void shouldThrowWhenMateriaHasContenidoTematico() {
+            when(materiaRepository.existsById(1L)).thenReturn(true);
+            when(cursoRepository.existsByMateriaId(1L)).thenReturn(false);
+            when(contenidoTematicoRepository.existsByMateriaId(1L)).thenReturn(true);
+
+            assertThatThrownBy(() -> materiaService.delete(1L))
+                    .isInstanceOf(ResourceInUseException.class)
+                    .hasMessageContaining("contenido temático");
+            verify(materiaRepository, never()).deleteById(any());
         }
     }
 }

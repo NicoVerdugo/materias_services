@@ -116,6 +116,11 @@ Materia (1) ──── (N) Curso (N) ──── (1) Docente
 | `DB_NAME` | Nombre de la base de datos | `materias_db` |
 | `DB_USERNAME` | Usuario de PostgreSQL | `materias_user` |
 | `DB_PASSWORD` | Contraseña de PostgreSQL | `materias_pass` |
+| `AWS_ACCESS_KEY_ID` | Credencial de AWS con permiso sobre el bucket | — (obligatoria) |
+| `AWS_SECRET_ACCESS_KEY` | Secreto de la credencial de AWS | — (obligatoria) |
+| `AWS_REGION` | Región del bucket (ej. `us-east-1`) | — (obligatoria) |
+| `AWS_BUCKET_NAME` | Bucket de S3 para el contenido temático | — (obligatoria) |
+| `AWS_SESSION_TOKEN` | Solo con credenciales temporales (AWS Academy / STS) | vacío |
 
 Ver `.env.example` para una referencia completa.
 
@@ -167,7 +172,27 @@ Una vez iniciado el servicio:
 | `GET` | `/api/materias` | Listar con paginación, filtros y ordenamiento |
 | `GET` | `/api/materias/{id}` | Obtener por ID |
 | `PUT` | `/api/materias/{id}` | Actualizar |
-| `DELETE` | `/api/materias/{id}` | Eliminar (409 si tiene cursos) |
+| `DELETE` | `/api/materias/{id}` | Eliminar (409 si tiene cursos o contenido temático) |
+
+### Contenido temático (AWS S3)
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `POST` | `/api/materias/{id}/contenido-tematico` | Subir un PDF (`multipart/form-data`, campo `archivo`, máx. 10 MB) |
+| `GET` | `/api/materias/{id}/contenido-tematico` | Listar archivos con una URL firmada temporal (1 hora) |
+
+El archivo se envía directamente desde memoria al bucket de S3 (nunca se escribe
+en disco). En PostgreSQL (`contenidos_tematicos`) solo se guardan los metadatos:
+clave del objeto en S3, nombre original, tipo MIME y tamaño en bytes. Se valida
+el tipo MIME y la firma binaria `%PDF-`: un archivo renombrado a `.pdf` se rechaza.
+
+| Situación | Respuesta |
+|---|---|
+| Falta el campo `archivo` o no es un PDF | `400 Bad Request` |
+| El PDF supera 10 MB | `413 Payload Too Large` |
+| No se envía `multipart/form-data` | `415 Unsupported Media Type` |
+| La materia no existe | `404 Not Found` |
+| Falla la comunicación con S3 | `502 Bad Gateway` |
 
 ### Docentes
 
