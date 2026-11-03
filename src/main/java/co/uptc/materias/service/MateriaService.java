@@ -8,6 +8,7 @@ import co.uptc.materias.entity.Materia;
 import co.uptc.materias.exception.ResourceInUseException;
 import co.uptc.materias.exception.ResourceNotFoundException;
 import co.uptc.materias.mapper.MateriaMapper;
+import co.uptc.materias.repository.ContenidoTematicoRepository;
 import co.uptc.materias.repository.CursoRepository;
 import co.uptc.materias.repository.MateriaRepository;
 import co.uptc.materias.specification.MateriaSpecification;
@@ -37,10 +38,13 @@ public class MateriaService {
 
     private final MateriaRepository materiaRepository;
     private final CursoRepository cursoRepository;
+    private final ContenidoTematicoRepository contenidoTematicoRepository;
 
-    public MateriaService(MateriaRepository materiaRepository, CursoRepository cursoRepository) {
+    public MateriaService(MateriaRepository materiaRepository, CursoRepository cursoRepository,
+                          ContenidoTematicoRepository contenidoTematicoRepository) {
         this.materiaRepository = materiaRepository;
         this.cursoRepository = cursoRepository;
+        this.contenidoTematicoRepository = contenidoTematicoRepository;
     }
 
     /**
@@ -127,7 +131,7 @@ public class MateriaService {
      *
      * @param id identificador de la materia
      * @throws ResourceNotFoundException si no existe
-     * @throws ResourceInUseException    si tiene cursos asociados
+     * @throws ResourceInUseException    si tiene cursos o contenido temático asociados
      */
     @Transactional
     public void delete(Long id) {
@@ -137,6 +141,10 @@ public class MateriaService {
         if (cursoRepository.existsByMateriaId(id)) {
             throw new ResourceInUseException(
                     "No se puede eliminar la materia con id: " + id + " porque tiene cursos asociados");
+        }
+        if (contenidoTematicoRepository.existsByMateriaId(id)) {
+            throw new ResourceInUseException(
+                    "No se puede eliminar la materia con id: " + id + " porque tiene contenido temático asociado");
         }
         materiaRepository.deleteById(id);
         log.info("Materia eliminada con id: {}", id);
