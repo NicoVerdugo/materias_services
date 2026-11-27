@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import software.amazon.awssdk.core.exception.SdkException;
 
 import java.time.LocalDateTime;
@@ -35,6 +37,8 @@ public class GlobalExceptionHandler {
      * middleware de logs del datalake.
      */
     public static final String ERROR_TYPE_ATTRIBUTE = "errorType";
+
+    public static final String RUTA_NO_EXISTE = "RutaNoExiste";
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFound(
@@ -62,6 +66,21 @@ public class GlobalExceptionHandler {
         log.warn("Regla de negocio [{}]: {}", ex.getErrorType(), ex.getMessage());
         return buildError(HttpStatus.UNPROCESSABLE_ENTITY, "UNPROCESSABLE_ENTITY", ex.getMessage(),
                 ex.getErrorType(), request);
+    }
+
+    /**
+     * Ruta sin endpoint. Desde Spring 6.1 una ruta no mapeada lanza
+     * {@link NoResourceFoundException}; sin este handler caía en el genérico y respondía 500.
+     * {@link NoHandlerFoundException} aplica solo si se desactiva el manejo de recursos
+     * estáticos (spring.web.resources.add-mappings=false); se cubre igual.
+     */
+    @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
+    public ResponseEntity<ErrorResponse> handleRutaNoExiste(
+            Exception ex, HttpServletRequest request) {
+        log.warn("Ruta no encontrada: {} {}", request.getMethod(), request.getRequestURI());
+        return buildError(HttpStatus.NOT_FOUND, "NOT_FOUND",
+                "No existe la ruta " + request.getMethod() + " " + request.getRequestURI(),
+                RUTA_NO_EXISTE, request);
     }
 
     @ExceptionHandler(DuplicateResourceException.class)

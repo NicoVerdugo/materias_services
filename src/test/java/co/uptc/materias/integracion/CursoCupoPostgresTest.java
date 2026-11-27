@@ -42,7 +42,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * crea su propia materia, docente y curso, y al final borra solo esas filas.
  * <pre>
  * MATERIAS_IT_DB_URL=jdbc:postgresql://localhost:5433/materias_db
- * MATERIAS_IT_DB_USER=materias_user
+ * MATERIAS_IT_DB_USERNAME=materias_user
  * MATERIAS_IT_DB_PASSWORD=...
  * mvn test -Dtest=CursoCupoPostgresTest
  * </pre>
@@ -67,7 +67,7 @@ class CursoCupoPostgresTest {
     static void datasource(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", () -> System.getenv("MATERIAS_IT_DB_URL"));
         registry.add("spring.datasource.username",
-                () -> envOr("MATERIAS_IT_DB_USER", "materias_user"));
+                () -> envOr("MATERIAS_IT_DB_USERNAME", "materias_user"));
         registry.add("spring.datasource.password",
                 () -> envOr("MATERIAS_IT_DB_PASSWORD", "materias_pass"));
     }

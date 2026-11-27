@@ -2,7 +2,9 @@ package co.uptc.materias.controller;
 
 import co.uptc.materias.dto.response.CursoResponse;
 import co.uptc.materias.dto.response.PageResponse;
+import co.uptc.materias.dto.response.ErrorResponse;
 import co.uptc.materias.exception.CupoAgotadoException;
+import co.uptc.materias.exception.GlobalExceptionHandler;
 import co.uptc.materias.exception.ReglaNegocioException;
 import co.uptc.materias.exception.ResourceNotFoundException;
 import co.uptc.materias.service.CursoService;
@@ -13,11 +15,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doThrow;
@@ -373,6 +381,47 @@ class CursoControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.errorType").doesNotExist())
                 .andExpect(request().attribute("errorType", nullValue()));
+    }
+
+    @Nested
+    @DisplayName("Ruta inexistente")
+    class RutaInexistente {
+
+        @Test
+        @DisplayName("GET a una ruta sin endpoint: 404 RutaNoExiste con el ErrorResponse habitual")
+        void shouldReturn404RutaNoExiste() throws Exception {
+            mockMvc.perform(get("/api/materias/cursos/1/no-existe"))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.timestamp").exists())
+                    .andExpect(jsonPath("$.status").value(404))
+                    .andExpect(jsonPath("$.error").value("NOT_FOUND"))
+                    .andExpect(jsonPath("$.message").value("No existe la ruta GET /api/materias/cursos/1/no-existe"))
+                    .andExpect(jsonPath("$.path").value("/api/materias/cursos/1/no-existe"))
+                    .andExpect(jsonPath("$.errorType").value("RutaNoExiste"))
+                    .andExpect(request().attribute("errorType", "RutaNoExiste"));
+        }
+
+        @Test
+        @DisplayName("POST a una ruta mal escrita (reservar-cupos): 404 RutaNoExiste, no 500")
+        void shouldReturn404ForTypoInNewEndpoint() throws Exception {
+            mockMvc.perform(post("/api/materias/cursos/1/reservar-cupos"))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.errorType").value("RutaNoExiste"));
+        }
+
+        @Test
+        @DisplayName("NoHandlerFoundException también responde 404 RutaNoExiste")
+        void shouldHandleNoHandlerFoundException() {
+            MockHttpServletRequest req = new MockHttpServletRequest("DELETE", "/api/materias/otra");
+
+            ResponseEntity<ErrorResponse> resp = new GlobalExceptionHandler().handleRutaNoExiste(
+                    new NoHandlerFoundException("DELETE", "/api/materias/otra", new HttpHeaders()), req);
+
+            assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+            assertThat(resp.getBody().errorType()).isEqualTo("RutaNoExiste");
+            assertThat(resp.getBody().path()).isEqualTo("/api/materias/otra");
+            assertThat(req.getAttribute("errorType")).isEqualTo("RutaNoExiste");
+        }
     }
 
     private static CursoResponse cursoResponse(int cupo, int cupoDisponible, String estado) {

@@ -105,6 +105,8 @@ Materia (1) ──── (N) Curso (N) ──── (1) Docente
 - **Migraciones:** Flyway (automáticas al iniciar)
   - `V1__create_initial_schema.sql` — Crea tablas y restricciones
   - `V2__insert_sample_data.sql` — Datos de prueba
+  - `V3__create_contenidos_tematicos.sql` — Metadatos del contenido temático (PDF en S3)
+  - `V4__estado_y_cupo_disponible.sql` — Columna `cupo_disponible` para la consistencia con Inscripciones
 
 ---
 
@@ -332,7 +334,7 @@ se defina `MATERIAS_IT_DB_URL`:
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.it.yml up -d db-mat   # expone 5433
 MATERIAS_IT_DB_URL=jdbc:postgresql://localhost:5433/materias_db \
-MATERIAS_IT_DB_USER=materias_user MATERIAS_IT_DB_PASSWORD=<DB_PASSWORD del .env> \
+MATERIAS_IT_DB_USERNAME=materias_user MATERIAS_IT_DB_PASSWORD=<DB_PASSWORD del .env> \
 mvn test -Dtest=CursoCupoPostgresTest
 ```
 
