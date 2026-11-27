@@ -1,6 +1,7 @@
 package co.uptc.materias.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 
@@ -9,6 +10,10 @@ import java.time.LocalDateTime;
  * <p>
  * Estructura consistente para todos los errores HTTP devueltos por la API.
  * No expone información interna del sistema (stack traces, SQL, rutas internas).
+ * <p>
+ * {@code errorType} es opcional: solo aparece en los errores de negocio que otro
+ * módulo (Inscripciones) necesita distinguir; si es nulo no se serializa, así que
+ * las respuestas de error existentes no cambian.
  */
 @Schema(description = "Respuesta de error")
 public record ErrorResponse(
@@ -27,6 +32,19 @@ public record ErrorResponse(
         String message,
 
         @Schema(description = "Ruta del recurso solicitado", example = "/api/materias/99")
-        String path
+        String path,
+
+        @Schema(description = "Código de error de negocio (opcional). Valores: CursoNoExiste, CursoInactivo, "
+                + "CupoAgotado, CupoYaCompleto, CupoMenorQueInscritos",
+                example = "CupoAgotado", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        String errorType
 ) {
+
+    /**
+     * Error sin {@code errorType} (formato anterior).
+     */
+    public ErrorResponse(LocalDateTime timestamp, int status, String error, String message, String path) {
+        this(timestamp, status, error, message, path, null);
+    }
 }

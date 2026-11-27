@@ -96,7 +96,11 @@ public class CursoController {
                     content = @Content(schema = @Schema(implementation = CursoResponse.class))),
             @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "404", description = "Curso, materia o docente no encontrado",
+            @ApiResponse(responseCode = "404", description = "Curso, materia o docente no encontrado "
+                    + "(errorType CursoNoExiste si el que falta es el curso)",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "422", description = "El cupo nuevo es menor que los cupos ya reservados "
+                    + "(errorType CupoMenorQueInscritos); no se aplica ningún cambio",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PutMapping("/{id}")
@@ -107,10 +111,13 @@ public class CursoController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Eliminar curso", description = "Elimina un curso de la oferta académica")
+    @Operation(summary = "Inactivar curso (baja lógica)",
+            description = "No borra la fila: cambia el estado del curso a INACTIVO. Se conserva porque "
+                    + "Inscripciones guarda el id del curso sin llave foránea. Un curso INACTIVO no "
+                    + "acepta nuevas reservas de cupo")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Curso eliminado exitosamente"),
-            @ApiResponse(responseCode = "404", description = "Curso no encontrado",
+            @ApiResponse(responseCode = "204", description = "Curso inactivado exitosamente"),
+            @ApiResponse(responseCode = "404", description = "Curso no encontrado (errorType CursoNoExiste)",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @DeleteMapping("/{id}")
@@ -118,5 +125,41 @@ public class CursoController {
             @Parameter(description = "ID del curso") @PathVariable Long id) {
         cursoService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Reservar un cupo",
+            description = "Descuenta 1 de cupoDisponible con una sola sentencia atómica. Lo usa el módulo "
+                    + "Inscripciones al inscribir a un estudiante")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Cupo reservado; devuelve el curso actualizado",
+                    content = @Content(schema = @Schema(implementation = CursoResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Curso no encontrado (errorType CursoNoExiste)",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "409", description = "Sin cupo disponible (errorType CupoAgotado)",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "422", description = "El curso no está ACTIVO (errorType CursoInactivo)",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @PostMapping("/{id}/reservar-cupo")
+    public ResponseEntity<CursoResponse> reservarCupo(
+            @Parameter(description = "ID del curso") @PathVariable Long id) {
+        return ResponseEntity.ok(cursoService.reservarCupo(id));
+    }
+
+    @Operation(summary = "Liberar un cupo",
+            description = "Suma 1 a cupoDisponible con una sola sentencia atómica, sin superar cupo. Lo usa "
+                    + "Inscripciones para compensar una inscripción fallida o al cancelar una inscripción")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Cupo liberado; devuelve el curso actualizado",
+                    content = @Content(schema = @Schema(implementation = CursoResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Curso no encontrado (errorType CursoNoExiste)",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "409", description = "El cupo ya estaba completo (errorType CupoYaCompleto)",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @PostMapping("/{id}/liberar-cupo")
+    public ResponseEntity<CursoResponse> liberarCupo(
+            @Parameter(description = "ID del curso") @PathVariable Long id) {
+        return ResponseEntity.ok(cursoService.liberarCupo(id));
     }
 }

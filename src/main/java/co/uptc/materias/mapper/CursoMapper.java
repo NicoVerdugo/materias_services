@@ -29,6 +29,7 @@ public final class CursoMapper {
                 curso.getHorario(),
                 curso.getPeriodo(),
                 curso.getCupo(),
+                curso.getCupoDisponible(),
                 curso.getAula(),
                 curso.getModalidad().name(),
                 curso.getEstado().name()

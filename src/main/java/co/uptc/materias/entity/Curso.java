@@ -33,8 +33,21 @@ public class Curso {
     @Column(nullable = false, length = 20)
     private String periodo;
 
-    @Column(nullable = false)
+    /**
+     * Capacidad del curso. {@code updatable = false}: Hibernate no la escribe al
+     * guardar la entidad; solo cambia con la sentencia condicional
+     * {@code CursoRepository.ajustarCupo}, que mueve a la vez {@code cupoDisponible}.
+     */
+    @Column(nullable = false, updatable = false)
     private Integer cupo;
+
+    /**
+     * Puestos libres. {@code updatable = false}: solo cambia con las sentencias
+     * UPDATE atómicas del repositorio (reservar, liberar, ajustar). Así un PUT o un
+     * save() con la entidad leída antes nunca pisa un descuento hecho en paralelo.
+     */
+    @Column(name = "cupo_disponible", nullable = false, updatable = false)
+    private Integer cupoDisponible;
 
     @Column(nullable = false, length = 50)
     private String aula;
@@ -50,20 +63,38 @@ public class Curso {
     public Curso() {
     }
 
+    /**
+     * Crea un curso sin inscritos: {@code cupoDisponible = cupo}.
+     */
     public Curso(Long id, Materia materia, Docente docente, String horario, String periodo,
                  Integer cupo, String aula, Modalidad modalidad, EstadoCurso estado) {
+        this(id, materia, docente, horario, periodo, cupo, cupo, aula, modalidad, estado);
+    }
+
+    public Curso(Long id, Materia materia, Docente docente, String horario, String periodo,
+                 Integer cupo, Integer cupoDisponible, String aula, Modalidad modalidad,
+                 EstadoCurso estado) {
         this.id = id;
         this.materia = materia;
         this.docente = docente;
         this.horario = horario;
         this.periodo = periodo;
         this.cupo = cupo;
+        this.cupoDisponible = cupoDisponible;
         this.aula = aula;
         this.modalidad = modalidad;
         this.estado = estado;
     }
 
     // --- Getters y Setters ---
+
+    public Integer getCupoDisponible() {
+        return cupoDisponible;
+    }
+
+    public void setCupoDisponible(Integer cupoDisponible) {
+        this.cupoDisponible = cupoDisponible;
+    }
 
     public Long getId() {
         return id;
