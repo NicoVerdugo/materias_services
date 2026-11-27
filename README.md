@@ -88,7 +88,8 @@ Materia (1) ──── (N) Curso (N) ──── (1) Docente
 | docenteId | Long | FK → docentes, NOT NULL |
 | horario | String | NOT NULL, max 200 |
 | periodo | String | NOT NULL, max 20 |
-| cupo | Integer | NOT NULL, > 0 |
+| cupo | Integer | NOT NULL, > 0 (capacidad) |
+| cupoDisponible | Integer | NOT NULL, 0 ≤ cupoDisponible ≤ cupo (puestos libres) |
 | aula | String | NOT NULL, max 50 |
 | modalidad | Enum | PRESENCIAL, VIRTUAL, HIBRIDA |
 | estado | Enum | ACTIVO, INACTIVO, CANCELADO |
@@ -211,8 +212,26 @@ el tipo MIME y la firma binaria `%PDF-`: un archivo renombrado a `.pdf` se recha
 | `POST` | `/api/materias/cursos` | Crear curso (valida materia y docente) |
 | `GET` | `/api/materias/cursos` | Listar con paginación, filtros y ordenamiento |
 | `GET` | `/api/materias/cursos/{id}` | Obtener por ID (incluye `materiaNombre`) |
-| `PUT` | `/api/materias/cursos/{id}` | Actualizar |
-| `DELETE` | `/api/materias/cursos/{id}` | Eliminar |
+| `PUT` | `/api/materias/cursos/{id}` | Actualizar (si cambia `cupo`, ajusta `cupoDisponible`; 422 `CupoMenorQueInscritos`) |
+| `DELETE` | `/api/materias/cursos/{id}` | Baja lógica: pasa el estado a `INACTIVO`, no borra la fila |
+| `POST` | `/api/materias/cursos/{id}/reservar-cupo` | Descuenta 1 cupo (lo usa Inscripciones) |
+| `POST` | `/api/materias/cursos/{id}/liberar-cupo` | Devuelve 1 cupo (compensación / cancelación) |
+
+### Consistencia de cupo con Inscripciones (sin FK)
+
+Inscripciones guarda el id del curso en su propia base, sin llave foránea. Para que
+esa referencia no quede colgando, los cursos **no se borran** (DELETE → `INACTIVO`), y el
+cupo se modifica solo con sentencias `UPDATE ... WHERE` condicionales y atómicas: la
+condición y la escritura van en la misma sentencia, nunca "leer, comparar en Java y escribir".
+
+| Endpoint | Éxito | Errores (`errorType`) |
+|----------|-------|------------------------|
+| `reservar-cupo` | 200 + curso | 404 `CursoNoExiste`, 422 `CursoInactivo`, 409 `CupoAgotado` |
+| `liberar-cupo` | 200 + curso | 404 `CursoNoExiste`, 409 `CupoYaCompleto` |
+| `PUT /cursos/{id}` | 200 + curso | 422 `CupoMenorQueInscritos` (no aplica ningún cambio) |
+
+El `errorType` también se deja en el atributo `errorType` de la petición
+(`request.getAttribute("errorType")`) para el middleware de logs.
 
 ---
 
@@ -284,10 +303,11 @@ Si se envía un campo no válido, se usa `id` por defecto.
 |--------|-------------|
 | `200` | Operación exitosa |
 | `201` | Recurso creado |
-| `204` | Recurso eliminado |
+| `204` | Recurso eliminado (en cursos: inactivado) |
 | `400` | Datos de entrada inválidos |
 | `404` | Recurso no encontrado |
-| `409` | Conflicto (recurso duplicado o en uso) |
+| `409` | Conflicto (recurso duplicado o en uso, cupo agotado o ya completo) |
+| `422` | Regla de negocio (curso inactivo, cupo menor que inscritos) |
 | `500` | Error interno del servidor |
 
 Formato de error:
@@ -299,6 +319,21 @@ Formato de error:
   "message": "Materia no encontrada con id: 99",
   "path": "/api/materias/99"
 }
+```
+
+Los errores de negocio de cursos agregan el campo opcional `errorType`
+(por ejemplo `"errorType": "CupoAgotado"`); los demás errores no lo incluyen.
+
+### Prueba de concurrencia contra PostgreSQL
+
+`CursoCupoPostgresTest` (20 hilos reservando un curso con cupo 1) se salta salvo que
+se defina `MATERIAS_IT_DB_URL`:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.it.yml up -d db-mat   # expone 5433
+MATERIAS_IT_DB_URL=jdbc:postgresql://localhost:5433/materias_db \
+MATERIAS_IT_DB_USER=materias_user MATERIAS_IT_DB_PASSWORD=<DB_PASSWORD del .env> \
+mvn test -Dtest=CursoCupoPostgresTest
 ```
 
 ---

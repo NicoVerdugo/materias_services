@@ -1,0 +1,7 @@
+# Solo para pruebas de integración desde el host (CursoCupoPostgresTest).
+# docker-compose.yml no publica el puerto de db-mat; este archivo lo expone en 5433.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.it.yml up -d db-mat
+services:
+  db-mat:
+    ports: ["5433:5432"]

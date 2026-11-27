@@ -30,18 +30,38 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    /**
+     * Atributo de la petición donde se deja el {@code errorType}; lo lee el
+     * middleware de logs del datalake.
+     */
+    public static final String ERROR_TYPE_ATTRIBUTE = "errorType";
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFound(
             ResourceNotFoundException ex, HttpServletRequest request) {
         log.warn("Recurso no encontrado: {}", ex.getMessage());
-        ErrorResponse error = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.NOT_FOUND.value(),
-                "NOT_FOUND",
-                ex.getMessage(),
-                request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        return buildError(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), ex.getErrorType(), request);
+    }
+
+    /**
+     * Conflictos de cupo: CupoAgotado (reservar) y CupoYaCompleto (liberar).
+     */
+    @ExceptionHandler(CupoAgotadoException.class)
+    public ResponseEntity<ErrorResponse> handleCupoAgotado(
+            CupoAgotadoException ex, HttpServletRequest request) {
+        log.warn("Conflicto de cupo [{}]: {}", ex.getErrorType(), ex.getMessage());
+        return buildError(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), ex.getErrorType(), request);
+    }
+
+    /**
+     * Reglas de negocio: CursoInactivo y CupoMenorQueInscritos.
+     */
+    @ExceptionHandler(ReglaNegocioException.class)
+    public ResponseEntity<ErrorResponse> handleReglaNegocio(
+            ReglaNegocioException ex, HttpServletRequest request) {
+        log.warn("Regla de negocio [{}]: {}", ex.getErrorType(), ex.getMessage());
+        return buildError(HttpStatus.UNPROCESSABLE_ENTITY, "UNPROCESSABLE_ENTITY", ex.getMessage(),
+                ex.getErrorType(), request);
     }
 
     @ExceptionHandler(DuplicateResourceException.class)
@@ -168,8 +188,20 @@ public class GlobalExceptionHandler {
 
     private ResponseEntity<ErrorResponse> buildError(HttpStatus status, String error, String message,
                                                      HttpServletRequest request) {
+        return buildError(status, error, message, null, request);
+    }
+
+    /**
+     * Arma el error y, si trae {@code errorType}, lo deja también en el atributo
+     * {@value #ERROR_TYPE_ATTRIBUTE} de la petición para el middleware de logs.
+     */
+    private ResponseEntity<ErrorResponse> buildError(HttpStatus status, String error, String message,
+                                                     String errorType, HttpServletRequest request) {
+        if (errorType != null) {
+            request.setAttribute(ERROR_TYPE_ATTRIBUTE, errorType);
+        }
         ErrorResponse body = new ErrorResponse(
-                LocalDateTime.now(), status.value(), error, message, request.getRequestURI());
+                LocalDateTime.now(), status.value(), error, message, request.getRequestURI(), errorType);
         return ResponseEntity.status(status).body(body);
     }
 

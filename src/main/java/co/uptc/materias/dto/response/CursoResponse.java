@@ -29,8 +29,12 @@ public record CursoResponse(
         @Schema(description = "Periodo académico", example = "2026-2")
         String periodo,
 
-        @Schema(description = "Cupo máximo", example = "30")
+        @Schema(description = "Cupo máximo (capacidad del curso)", example = "30")
         Integer cupo,
+
+        @Schema(description = "Puestos libres; lo descuentan y devuelven reservar-cupo / liberar-cupo",
+                example = "12")
+        Integer cupoDisponible,
 
         @Schema(description = "Aula asignada", example = "Laboratorio 204")
         String aula,

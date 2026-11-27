@@ -9,6 +9,8 @@ import co.uptc.materias.entity.Docente;
 import co.uptc.materias.entity.EstadoCurso;
 import co.uptc.materias.entity.Materia;
 import co.uptc.materias.entity.Modalidad;
+import co.uptc.materias.exception.CupoAgotadoException;
+import co.uptc.materias.exception.ReglaNegocioException;
 import co.uptc.materias.exception.ResourceNotFoundException;
 import co.uptc.materias.mapper.CursoMapper;
 import co.uptc.materias.repository.CursoRepository;
@@ -78,6 +80,7 @@ public class CursoService {
         curso.setHorario(request.horario());
         curso.setPeriodo(request.periodo());
         curso.setCupo(request.cupo());
+        curso.setCupoDisponible(request.cupo());
         curso.setAula(request.aula());
         curso.setModalidad(request.modalidad());
         curso.setEstado(request.estado());
@@ -98,9 +101,7 @@ public class CursoService {
      * @throws ResourceNotFoundException si no existe
      */
     public CursoResponse findById(Long id) {
-        Curso curso = cursoRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Curso no encontrado con id: " + id));
-        return CursoMapper.toResponse(curso);
+        return CursoMapper.toResponse(buscarCurso(id));
     }
 
     /**
@@ -130,17 +131,20 @@ public class CursoService {
     /**
      * Actualiza un Curso existente.
      * <p>
-     * Valida que la Materia y el Docente referenciados existan.
+     * Valida que la Materia y el Docente referenciados existan. Si cambia el cupo,
+     * {@code cupo} y {@code cupo_disponible} se ajustan en una sola sentencia
+     * condicional ({@link CursoRepository#ajustarCupo}) dentro de esta transacción;
+     * si el cupo disponible quedaría negativo se revierte todo el PUT con 422.
      *
      * @param id      identificador del curso
      * @param request datos actualizados
      * @return el curso actualizado
      * @throws ResourceNotFoundException si el curso, materia o docente no existen
+     * @throws ReglaNegocioException     (CupoMenorQueInscritos) si el cupo nuevo es menor que los reservados
      */
     @Transactional
     public CursoResponse update(Long id, CursoUpdateRequest request) {
-        Curso curso = cursoRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Curso no encontrado con id: " + id));
+        Curso curso = buscarCurso(id);
 
         Materia materia = materiaRepository.findById(request.materiaId())
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -153,28 +157,84 @@ public class CursoService {
         curso.setDocente(docente);
         curso.setHorario(request.horario());
         curso.setPeriodo(request.periodo());
-        curso.setCupo(request.cupo());
         curso.setAula(request.aula());
         curso.setModalidad(request.modalidad());
         curso.setEstado(request.estado());
+        // cupo y cupo_disponible no se escriben con save() (updatable = false en la entidad)
+        cursoRepository.save(curso);
 
-        Curso updated = cursoRepository.save(curso);
-        log.info("Curso actualizado con id: {}", updated.getId());
+        if (!curso.getCupo().equals(request.cupo())) {
+            // Envía primero el resto de cambios (flushAutomatically) y luego ajusta el cupo
+            int filas = cursoRepository.ajustarCupo(id, request.cupo());
+            if (filas == 0) {
+                throw ReglaNegocioException.cupoMenorQueInscritos(id, request.cupo());
+            }
+        }
+
+        Curso updated = buscarCurso(id);
+        log.info("Curso actualizado con id: {}", id);
         return CursoMapper.toResponse(updated);
     }
 
     /**
-     * Elimina un Curso por su ID.
+     * Baja lógica de un Curso: pasa su estado a INACTIVO y conserva la fila,
+     * porque Inscripciones guarda el id del curso sin llave foránea.
      *
      * @param id identificador del curso
      * @throws ResourceNotFoundException si no existe
      */
     @Transactional
     public void delete(Long id) {
-        if (!cursoRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Curso no encontrado con id: " + id);
+        if (cursoRepository.inactivar(id) == 0) {
+            throw ResourceNotFoundException.curso(id);
         }
-        cursoRepository.deleteById(id);
-        log.info("Curso eliminado con id: {}", id);
+        log.info("Curso inactivado con id: {}", id);
+    }
+
+    /**
+     * Descuenta un cupo del curso con una sola sentencia condicional.
+     * <p>
+     * Solo si la sentencia no afectó filas se consulta el curso, y únicamente para
+     * elegir el error; la decisión de descontar nunca se toma en Java.
+     *
+     * @return el curso con el cupo ya descontado
+     * @throws ResourceNotFoundException (CursoNoExiste) si el curso no existe
+     * @throws ReglaNegocioException     (CursoInactivo) si el estado no es ACTIVO
+     * @throws CupoAgotadoException      (CupoAgotado) si no queda cupo
+     */
+    @Transactional
+    public CursoResponse reservarCupo(Long id) {
+        if (cursoRepository.reservarCupo(id) == 1) {
+            log.info("Cupo reservado en curso {}", id);
+            return CursoMapper.toResponse(buscarCurso(id));
+        }
+        Curso curso = buscarCurso(id);
+        if (curso.getEstado() != EstadoCurso.ACTIVO) {
+            throw ReglaNegocioException.cursoInactivo(id, curso.getEstado());
+        }
+        throw CupoAgotadoException.agotado(id);
+    }
+
+    /**
+     * Devuelve un cupo al curso (compensación o cancelación de una inscripción).
+     * No exige estado ACTIVO: una inscripción de un curso ya inactivo también se puede cancelar.
+     *
+     * @return el curso con el cupo ya devuelto
+     * @throws ResourceNotFoundException (CursoNoExiste) si el curso no existe
+     * @throws CupoAgotadoException      (CupoYaCompleto) si cupo_disponible ya es igual a cupo
+     */
+    @Transactional
+    public CursoResponse liberarCupo(Long id) {
+        if (cursoRepository.liberarCupo(id) == 1) {
+            log.info("Cupo liberado en curso {}", id);
+            return CursoMapper.toResponse(buscarCurso(id));
+        }
+        buscarCurso(id);
+        throw CupoAgotadoException.yaCompleto(id);
+    }
+
+    private Curso buscarCurso(Long id) {
+        return cursoRepository.findById(id)
+                .orElseThrow(() -> ResourceNotFoundException.curso(id));
     }
 }
