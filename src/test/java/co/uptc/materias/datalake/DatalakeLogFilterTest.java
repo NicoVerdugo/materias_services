@@ -12,6 +12,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -151,6 +153,60 @@ class DatalakeLogFilterTest {
         String devuelto = r.getResponse().getHeader("x-trace-id");
         assertThat(devuelto).matches("[0-9a-f]{16}");
         assertThat(json.readTree(lineas.getFirst()).get("trace_id").asText()).isEqualTo(devuelto);
+    }
+
+    @ParameterizedTest(name = "inválido: [{0}]")
+    @ValueSource(strings = {"", " abc", "abc def", "abc_def", "abc.def", "abc\"},{\"x\":1",
+            "<script>", "trazá-1", "a/b"})
+    @DisplayName("x-trace-id que no cumple ^[A-Za-z0-9-]{1,128}$: se genera uno nuevo")
+    void traceIdInvalidoSeReemplaza(String invalido) throws Exception {
+        when(cursoService.findById(1L)).thenReturn(curso());
+
+        MvcResult r = mockMvc.perform(get("/api/materias/cursos/1").header("x-trace-id", invalido))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String devuelto = r.getResponse().getHeader("x-trace-id");
+        assertThat(devuelto).matches("[0-9a-f]{16}").isNotEqualTo(invalido);
+        assertThat(json.readTree(lineas.getFirst()).get("trace_id").asText()).isEqualTo(devuelto);
+    }
+
+    @Test
+    @DisplayName("x-trace-id de 129 caracteres se reemplaza; el de 128 se conserva")
+    void traceIdLimiteDeLargo() throws Exception {
+        when(cursoService.findById(1L)).thenReturn(curso());
+        String de128 = "a-".repeat(64);
+        String de129 = de128 + "b";
+
+        mockMvc.perform(get("/api/materias/cursos/1").header("x-trace-id", de128))
+                .andExpect(header().string("x-trace-id", de128));
+        MvcResult largo = mockMvc.perform(get("/api/materias/cursos/1").header("x-trace-id", de129))
+                .andReturn();
+
+        assertThat(largo.getResponse().getHeader("x-trace-id")).matches("[0-9a-f]{16}");
+        assertThat(json.readTree(lineas.get(0)).get("trace_id").asText()).isEqualTo(de128);
+    }
+
+    @Test
+    @DisplayName("x-trace-id con mayúsculas, dígitos y guiones (p. ej. un UUID) se conserva")
+    void traceIdValidoSeConserva() throws Exception {
+        when(cursoService.findById(1L)).thenReturn(curso());
+        String uuid = "3F2504E0-4F89-11D3-9A0C-0305E82C3301";
+
+        mockMvc.perform(get("/api/materias/cursos/1").header("x-trace-id", uuid))
+                .andExpect(header().string("x-trace-id", uuid));
+
+        assertThat(json.readTree(lineas.getFirst()).get("trace_id").asText()).isEqualTo(uuid);
+    }
+
+    @Test
+    @DisplayName("405 queda en el log con status 405 y error_type MetodoNoPermitido")
+    void metodoNoPermitidoEnLog() throws Exception {
+        mockMvc.perform(delete("/api/materias/cursos")).andExpect(status().isMethodNotAllowed());
+
+        JsonNode l = json.readTree(lineas.getFirst());
+        assertThat(l.get("status").asInt()).isEqualTo(405);
+        assertThat(l.get("error_type").asText()).isEqualTo("MetodoNoPermitido");
     }
 
     @Test

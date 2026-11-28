@@ -26,6 +26,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.regex.Pattern;
 
 /**
  * Registra una línea por petición para el datalake (contrato común a todos los módulos).
@@ -46,6 +47,9 @@ public class DatalakeLogFilter extends OncePerRequestFilter {
 
     public static final String TRACE_HEADER = "x-trace-id";
     static final int LIMITE_CUERPO = 16 * 1024;
+
+    /** Formato aceptado para un x-trace-id recibido. */
+    static final Pattern TRACE_VALIDO = Pattern.compile("^[A-Za-z0-9-]{1,128}$");
 
     static final String CUERPO_NO_JSON = "<no-json>";
     static final String CUERPO_DEMASIADO_GRANDE = "<demasiado-grande>";
@@ -240,10 +244,15 @@ public class DatalakeLogFilter extends OncePerRequestFilter {
         return false;
     }
 
-    private static String traceId(HttpServletRequest request) {
+    /**
+     * Reutiliza el x-trace-id recibido solo si cumple {@link #TRACE_VALIDO}; si falta o
+     * trae otros caracteres (espacios, comillas, saltos de línea...) o pasa de 128, se
+     * genera uno nuevo. Así el valor nunca rompe el log ni el encabezado de respuesta.
+     */
+    static String traceId(HttpServletRequest request) {
         String recibido = request.getHeader(TRACE_HEADER);
-        if (recibido != null && !recibido.isBlank()) {
-            return recibido.trim();
+        if (recibido != null && TRACE_VALIDO.matcher(recibido).matches()) {
+            return recibido;
         }
         return String.format("%016x", ThreadLocalRandom.current().nextLong());
     }

@@ -4,13 +4,18 @@ import co.uptc.materias.dto.response.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingPathVariableException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
@@ -19,6 +24,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import software.amazon.awssdk.core.exception.SdkException;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -39,6 +45,8 @@ public class GlobalExceptionHandler {
     public static final String ERROR_TYPE_ATTRIBUTE = "errorType";
 
     public static final String RUTA_NO_EXISTE = "RutaNoExiste";
+    public static final String METODO_NO_PERMITIDO = "MetodoNoPermitido";
+    public static final String VALIDACION_FALLIDA = "ValidacionFallida";
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFound(
@@ -81,6 +89,64 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.NOT_FOUND, "NOT_FOUND",
                 "No existe la ruta " + request.getMethod() + " " + request.getRequestURI(),
                 RUTA_NO_EXISTE, request);
+    }
+
+    /**
+     * Método HTTP no soportado por la ruta (antes caía en el genérico: 500).
+     * Responde 405 con el encabezado Allow con los métodos que sí acepta.
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMetodoNoPermitido(
+            HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
+        log.warn("Método no permitido: {} {}", request.getMethod(), request.getRequestURI());
+        ResponseEntity<ErrorResponse> error = buildError(HttpStatus.METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED",
+                "El método " + request.getMethod() + " no está permitido en " + request.getRequestURI(),
+                METODO_NO_PERMITIDO, request);
+        Set<HttpMethod> permitidos = ex.getSupportedHttpMethods();
+        if (permitidos == null || permitidos.isEmpty()) {
+            return error;
+        }
+        return ResponseEntity.status(error.getStatusCode())
+                .headers(h -> h.setAllow(permitidos))
+                .body(error.getBody());
+    }
+
+    /**
+     * Falta un parámetro de query obligatorio (antes: 500).
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> handleParametroFaltante(
+            MissingServletRequestParameterException ex, HttpServletRequest request) {
+        log.warn("Parámetro faltante: {}", ex.getParameterName());
+        return buildError(HttpStatus.BAD_REQUEST, "BAD_REQUEST",
+                "Falta el parámetro obligatorio '" + ex.getParameterName() + "'",
+                VALIDACION_FALLIDA, request);
+    }
+
+    /**
+     * Un parámetro o variable de ruta no se puede convertir a su tipo, p. ej.
+     * /api/materias/cursos/abc (antes: 500). No se repite el valor recibido.
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTipoInvalido(
+            MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+        log.warn("Tipo inválido en el parámetro '{}'", ex.getName());
+        String esperado = ex.getRequiredType() == null ? "" : " (se esperaba " + ex.getRequiredType().getSimpleName() + ")";
+        return buildError(HttpStatus.BAD_REQUEST, "BAD_REQUEST",
+                "El parámetro '" + ex.getName() + "' tiene un valor inválido" + esperado,
+                VALIDACION_FALLIDA, request);
+    }
+
+    /**
+     * Falta una variable de ruta (antes: 500).
+     */
+    @ExceptionHandler(MissingPathVariableException.class)
+    public ResponseEntity<ErrorResponse> handleVariableRutaFaltante(
+            MissingPathVariableException ex, HttpServletRequest request) {
+        log.warn("Variable de ruta faltante: {}", ex.getVariableName());
+        return buildError(HttpStatus.BAD_REQUEST, "BAD_REQUEST",
+                "Falta la variable de ruta '" + ex.getVariableName() + "'",
+                VALIDACION_FALLIDA, request);
     }
 
     @ExceptionHandler(DuplicateResourceException.class)
